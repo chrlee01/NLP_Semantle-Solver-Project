@@ -11,7 +11,6 @@ import pytz
 time_first = time.perf_counter()
 print("loading word2vec model")
 model = gensim.downloader.load('word2vec-google-news-300')
-print(type(model))
 print("model loaded")
 print("took {} seconds to load".format(time.perf_counter() - time_first))
 
@@ -37,6 +36,11 @@ guess = ""
 while guess != target:
     # guess logic
     guess = input("enter a guess: ")    
+
+    if guess not in model:
+        print("word invalid")
+        continue
+
     calculated_vector = model[guess]
     calculated_vector_comparison = calculated_vector.reshape(1, -1)
 

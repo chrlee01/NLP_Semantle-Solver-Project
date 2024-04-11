@@ -62,7 +62,7 @@ class SemantleSession:
     def _generate_url(self):
         self.url = f'{constants.SEMANTLE_BASE_URL}/{self.target}'
 
-    def _check_guess(self, guess):
+    def check_guess(self, guess):
         if guess == self.target:
             return {'guess': guess, 'correct': True, 'similarity': 100, 'invalid': False}
         elif guess not in self.client.loaded_model:

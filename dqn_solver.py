@@ -22,14 +22,15 @@ if __name__ == '__main__':
         done = False
         score = 0
         observation = env.reset()
+        
         while not done:
             action = agent.choose_action(observation)
             observation_, reward, done, info = env.step(action)
             score += reward
             agent.store_transition(observation, action, reward, observation_, done)
-            
             observation = observation_
             agent.learn()
+            
         scores.append(score)
         eps_history.append(agent.epsilon)
         avg_score = np.mean(scores[-100:])

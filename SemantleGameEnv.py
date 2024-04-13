@@ -16,25 +16,39 @@ class SemantleEnv(gym.Env):
         self.model = api.load(model_name)
         self.incorrect_guess_penalty = incorrect_guess_penalty
         self.action_space = spaces.Discrete(len(self.word_list))
+        
         # State will include the last N guesses and their similarity scores
         # Each guess has 2 values: index and score, so we multiply history_length by 2
         self.observation_space = spaces.Box(low=-100, high=100, shape=(history_length*2,), dtype=np.float32)
+        
         self.target_word = random.choice(self.word_list)
         self.current_guess_count = 0
+        self.state = np.zeros(history_length * 2)
         self.reset()
         
 
     def step(self, action):
-        done = False
+        
         guessed_word = self.word_list[action]
         similarity_score = self._get_similarity_score(guessed_word)
+        
+        current_index = (self.current_guess_count * 2) % (self.history_length * 2)
+        self.state[current_index] = action  # Store the index of the guessed word in the state history
+        self.state[current_index + 1] = similarity_score  # Store the similarity score in the state history
+        
         self.current_guess_count += 1
         
-        decay_factor = self.decay_function(self.current_guess_count)  # exponentail decay that we can use to limit rewards obtained at later guesses
-        
-        reward = similarity_score
-        if similarity_score == 100:
+        if(self.current_guess_count > self.max_guesses):
             done = True
+            reward = self.incorrect_guess_penalty
+        elif(similarity_score == 100):
+            done = True
+            reward = self.correct_guess_bonus
+        else:
+            reward = similarity_score
+            done = False
+        
+        decay_factor = self.decay_function(self.current_guess_count)  # exponentail decay that we can use to limit rewards obtained at later guesses
         
         # Update state and continue
         return self.state, reward, done, {}
@@ -46,7 +60,6 @@ class SemantleEnv(gym.Env):
         self.target_vector = self.model[self.target_word].reshape(1, -1)
         # Initialize the state with -1 for indices and 0 for scores
         self.state = np.zeros(self.history_length * 2)
-        self.state[::2] = -1  # Set every other element to -1 to represent unguessed words
         return self.state
 
     def _get_similarity_score(self, guessed_word):

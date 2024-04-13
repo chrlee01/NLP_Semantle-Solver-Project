@@ -16,6 +16,7 @@ class SemantleEnv(gym.Env):
         self.model = api.load(model_name)
         self.incorrect_guess_penalty = incorrect_guess_penalty
         self.action_space = spaces.Discrete(len(self.word_list))
+        self.vebose = False
         
         # State will include the last N guesses and their similarity scores
         # Each guess has 2 values: index and score, so we multiply history_length by 2
@@ -28,9 +29,11 @@ class SemantleEnv(gym.Env):
         
 
     def step(self, action):
-        
+        if self.verbose:
+            print(f"Target word: {self.target_word}: Guessed word: {self.word_list[action]}")
         guessed_word = self.word_list[action]
         similarity_score = self._get_similarity_score(guessed_word)
+            
         
         current_index = (self.current_guess_count * 2) % (self.history_length * 2)
         self.state[current_index] = action  # Store the index of the guessed word in the state history
@@ -42,6 +45,7 @@ class SemantleEnv(gym.Env):
             done = True
             reward = self.incorrect_guess_penalty
         elif(similarity_score == 100):
+            print("Correct guess!, Guessed Word : " + self.word_list[action])
             done = True
             reward = self.correct_guess_bonus
         else:

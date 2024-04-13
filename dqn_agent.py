@@ -19,6 +19,7 @@ class DeepQNetwork(nn.Module):
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
         self.to(self.device)
         
+        
     def forward(self, state):
         x=F.relu(self.fc1(state))
         x=F.relu(self.fc2(x))

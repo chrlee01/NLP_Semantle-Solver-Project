@@ -20,47 +20,47 @@ with open('words.json', 'r') as fp:
 if __name__ == '__main__':
     print("start")
     # Initialize the Semantle environment with the word list
-    env = SemantleEnv(word_list=word_list, history_length=100, max_guesses=100, correct_guess_bonus=400, incorrect_guess_penalty=-50)
+    env = SemantleEnv(word_list=word_list, history_length=5, max_guesses=100, correct_guess_bonus=400, incorrect_guess_penalty=-500)
     state_size = env.observation_space.shape[0]
     action_size = env.action_space.n
+    agent = Agent(gamma=0.99, epsilon=1.0, batch_size=256, n_actions=action_size, eps_end=0.01, input_dims=state_size, lr=0.001)
 
-    agent = Agent(gamma=0.95, epsilon=1.0, batch_size=256, n_actions=action_size, eps_end=0.05, input_dims=[state_size], lr=0.002)
     
-    scores, eps_history = [], []
-    n_games = 1000
+    n_games = 30000
+    save_interval = 1000  # Save the model every 1000 games
+    
     similarity_scores = []
     for i in range(n_games):
         
         if (i % 100 == 0):
             print(" ")
             print("Game " + str(i))
-            SemantleEnv.verbose = True
-            print("Average Similarity: " + str(np.mean(env.state[1::2])))
+            env.verbose = True  # Fix to access the instance variable correctly
             print(" ")
-            #prints average similarity score of this game
         else:
-            SemantleEnv.verbose = False
+            env.verbose = False
             
         done = False
         score = 0
         
         observation = env.reset()
-        
+        game_scores = []
         while not done:
+            
             action = agent.choose_action(observation)
-            observation_, reward, done, info = env.step(action)
+            observation_, reward, done, info, similarity_score = env.step(action)
             score += reward
             agent.store_transition(observation, action, reward, observation_, done)
             observation = observation_
             agent.learn()
+            game_scores.append(similarity_score)
             
-        scores.append(score)
-        eps_history.append(agent.epsilon)
-        avg_score = np.mean(env.state[1::2])
-        similarity_scores.append(avg_score)
-        print(f'episode {i}, score {score:.2f}, average similarity score {np.mean(similarity_scores)}')
+        similarity_scores.append(np.mean(game_scores))
+            # Save model periodically and at the end of training
+        if (i + 1) % save_interval == 0 or (i + 1) == n_games:
+            agent.save_model()
+        print(f'episode {i}, score {score:.2f}, game average similarity score {np.mean(game_scores):.2f}, recent average score {np.mean(similarity_scores[-100:]):.2f}')
     print("end")
 
     plot_scores(similarity_scores)
-
 

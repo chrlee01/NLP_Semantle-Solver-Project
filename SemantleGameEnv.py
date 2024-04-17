@@ -13,33 +13,36 @@ class SemantleEnv(gym.Env):
         self.history_length = history_length
         self.max_guesses = max_guesses
         self.correct_guess_bonus = correct_guess_bonus
-        self.model = api.load(model_name)
+        self.model = api.load(model_name)  # Load GloVe model
         self.incorrect_guess_penalty = incorrect_guess_penalty
         self.action_space = spaces.Discrete(len(self.word_list))
-        self.vebose = False
         
-        # State will include the last N guesses and their similarity scores
-        # Each guess has 2 values: index and score, so we multiply history_length by 2
-        self.observation_space = spaces.Box(low=-100, high=100, shape=(history_length*2,), dtype=np.float32)
-        
-        self.target_word = random.choice(self.word_list)
-        self.current_guess_count = 0
-        self.state = np.zeros(history_length * 2)
+        # Determine size of each entry in the state (300 for the embedding + 1 for the similarity score)
+        embedding_size = 300
+        entry_size = embedding_size + 1  # Plus one for the similarity score
+        self.observation_space = spaces.Box(low=-1, high=1, shape=(history_length * entry_size,), dtype=np.float32)
+        self.state = np.zeros(self.history_length * entry_size)  # Initialize state array
+        self.verbose = False
         self.reset()
-        
 
     def step(self, action):
-        if self.verbose:
-            print(f"Target word: {self.target_word}: Guessed word: {self.word_list[action]}")
         guessed_word = self.word_list[action]
         similarity_score = self._get_similarity_score(guessed_word)
-            
-        
-        current_index = (self.current_guess_count * 2) % (self.history_length * 2)
-        self.state[current_index] = action  # Store the index of the guessed word in the state history
-        self.state[current_index + 1] = similarity_score  # Store the similarity score in the state history
-        
-        self.current_guess_count += 1
+        guessed_vector = self.model[guessed_word] if guessed_word in self.model else np.zeros(300)
+
+        # Define the embedding size and the entry size (embedding + 1 for similarity score)
+        embedding_size = 300
+        entry_size = embedding_size + 1
+
+        # Shift existing data to the right to make room for the new data at the front
+        # The total entries in the buffer are history_length, and each entry is of size entry_size
+        self.state[entry_size:] = self.state[:-entry_size]  # Shift everything to the right
+
+        # Insert the new embedding and similarity score at the front of the state
+        self.state[0:embedding_size] = guessed_vector
+        self.state[embedding_size] = similarity_score
+
+        # Logic to handle game progress and check for game end
         
         if(self.current_guess_count > self.max_guesses):
             done = True
@@ -51,26 +54,26 @@ class SemantleEnv(gym.Env):
         else:
             reward = similarity_score
             done = False
+        reward *= self.decay_function(self.current_guess_count)
         
-        decay_factor = self.decay_function(self.current_guess_count)  # exponentail decay that we can use to limit rewards obtained at later guesses
-        
-        # Update state and continue
-        return self.state, reward, done, {}
-
+        self.current_guess_count += 1
+        return self.state, reward, done, {}, similarity_score
 
     def reset(self):
         self.current_guess_count = 0
         self.target_word = random.choice(self.word_list)
-        self.target_vector = self.model[self.target_word].reshape(1, -1)
-        # Initialize the state with -1 for indices and 0 for scores
-        self.state = np.zeros(self.history_length * 2)
+        self.target_vector = self.model[self.target_word].reshape(1, -1) if self.target_word in self.model else np.zeros((1, 300))
+        # Initialize the state with zeros to accommodate all embeddings and similarity scores
+        embedding_size = 300
+        entry_size = embedding_size + 1
+        self.state = np.zeros(self.history_length * entry_size)
         return self.state
 
     def _get_similarity_score(self, guessed_word):
-        if(guessed_word == self.target_word):
+        if guessed_word == self.target_word:
             return 100
         if guessed_word not in self.model:
-            return 0  # Or some other handling of out-of-vocabulary words
+            return 0
         guessed_vector = self.model[guessed_word].reshape(1, -1)
         similarity = (cosine_similarity(self.target_vector, guessed_vector)[0][0] * 100)
         return similarity

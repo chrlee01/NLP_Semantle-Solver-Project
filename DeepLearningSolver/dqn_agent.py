@@ -5,13 +5,31 @@ import torch.optim as optim
 import numpy as np
 
 class DeepQNetwork(nn.Module):
+    """Initialize parameters and optimizer for the Deep Q Network."""
     def __init__(self, lr, input_dims, fc1_dims, fc2_dims, n_actions):
+        """Initialize the Deep Q Network.
+
+        Parameters
+        ----------
+        lr : float
+            The learning rate for the Adam optimizer.
+        input_dims : int
+            The number of input dimensions (size of observation).
+        fc1_dims : int
+            The number of nodes in the first fully connected layer.
+        fc2_dims : int
+            The number of nodes in the second fully connected layer.
+        n_actions : int
+            The number of possible actions.
+        """
         super(DeepQNetwork, self).__init__()
         # Ensure input_dims is an integer
         input_dims = input_dims if isinstance(input_dims, int) else input_dims[0]
+
         self.fc1 = nn.Linear(input_dims, fc1_dims)
         self.fc2 = nn.Linear(fc1_dims, fc2_dims)
         self.fc3 = nn.Linear(fc2_dims, n_actions)
+
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
         self.loss = nn.MSELoss()
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
@@ -25,6 +43,26 @@ class DeepQNetwork(nn.Module):
         return actions
 
 class Agent():
+    """Deep Q-Network Agent for the Solver environment.
+    
+    The agent has the following attributes:
+        gamma: discount factor
+        epsilon: epsilon-greedy parameter
+        eps_end: minimum epsilon
+        eps_dec: epsilon decay rate
+        lr: learning rate
+        action_space: action space
+        mem_size: maximum memory size
+        batch_size: batch size
+        mem_cntr: memory counter
+        
+        Q_eval: Deep Q-Network
+        state_memory: memory of past states
+        new_state_memory: memory of past next states
+        action_memory: memory of past actions
+        reward_memory: memory of past rewards
+        terminal_memory: memory of past terminal states
+    """
     def __init__(self, gamma, epsilon, lr, input_dims, batch_size, n_actions, max_mem_size=100000, eps_end=0.01, eps_dec=5e-4):
         self.gamma = gamma
         self.epsilon = epsilon
@@ -46,6 +84,7 @@ class Agent():
         self.terminal_memory = np.zeros(self.mem_size, dtype=bool)
         
     def store_transition(self, state, action, reward, state_, done):
+        """Store a transition into the memory."""
         index = self.mem_cntr % self.mem_size
         self.state_memory[index] = state
         self.new_state_memory[index] = state_
@@ -56,6 +95,7 @@ class Agent():
         self.mem_cntr += 1
         
     def choose_action(self, observation):
+        """Choose an action based on an epsilon-greedy policy or a random action."""
         if np.random.random() > self.epsilon:
             state = T.tensor(np.array([observation]), dtype=T.float32).to(self.Q_eval.device)
             actions = self.Q_eval.forward(state)
@@ -65,6 +105,7 @@ class Agent():
         return action
     
     def learn(self):
+        """Update the Q-network using the replay memory."""
         if self.mem_cntr < self.batch_size:
             return
         
@@ -95,6 +136,7 @@ class Agent():
         self.epsilon = self.epsilon - self.eps_dec if self.epsilon > self.eps_min else self.eps_min
         
     def save_model(self, filename="dqn_model.pth"):
+        """Save the Q-network to a file."""
         T.save({
             'model_state_dict': self.Q_eval.state_dict(),
             'optimizer_state_dict': self.Q_eval.optimizer.state_dict(),
@@ -102,6 +144,7 @@ class Agent():
         }, filename)
         
     def load_model(self, filename="dqn_model.pth"):
+        """Load the Q-network from a file."""
         checkpoint = T.load(filename, map_location=self.Q_eval.device)
         self.Q_eval.load_state_dict(checkpoint['model_state_dict'])
         self.Q_eval.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])

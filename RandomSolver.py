@@ -2,11 +2,8 @@ import json
 import numpy as np
 import gensim.downloader as api
 from sklearn.metrics.pairwise import cosine_similarity
-import random
-import torch
 import numpy as np
 from tqdm import tqdm 
-from annoy import AnnoyIndex
 
 class RandomHelper():
     def __init__(self, word_file_path='words.json', model_name='word2vec-google-news-300'):

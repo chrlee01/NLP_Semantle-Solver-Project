@@ -33,10 +33,14 @@ if __name__ == '__main__':
     else:
         print("No existing model found, starting fresh...")
 
+    # Number of games to play
     n_games = 1000
-    save_interval = 1000  # Adjusted comment to match the interval variable
+    # Save model every so many games
+    save_interval = 1000
 
+    # Keep track of similarity scores per game
     similarity_scores = []
+    # Keep track of average similarity scores over the last 100 games
     averages = []
     for i in range(n_games):
         
@@ -54,7 +58,7 @@ if __name__ == '__main__':
         observation = env.reset()
         game_scores = []
         while not done:
-            
+            #loop for each game, runs until game is over
             action = agent.choose_action(observation)
             observation_, reward, done, info, similarity_score = env.step(action)
             score += reward
@@ -71,5 +75,4 @@ if __name__ == '__main__':
         averages.append(local_average)
         print(f'episode {i}, score {score:.2f}, game average similarity score {np.mean(game_scores):.2f}, recent average score {local_average:.2f}')
     print("end")
-
     plot_scores(averages)

@@ -36,7 +36,7 @@ class Agent():
         self.batch_size = batch_size
         self.mem_cntr = 0
         
-        self.Q_eval = DeepQNetwork(lr, input_dims, 256, 256, n_actions)
+        self.Q_eval = DeepQNetwork(lr, input_dims, 512, 512, n_actions)
         
         self.state_memory = np.zeros((self.mem_size, input_dims), dtype=np.float32)
         self.new_state_memory = np.zeros((self.mem_size, input_dims), dtype=np.float32)
@@ -100,3 +100,9 @@ class Agent():
             'optimizer_state_dict': self.Q_eval.optimizer.state_dict(),
             'epsilon': self.epsilon
         }, filename)
+        
+    def load_model(self, filename="dqn_model.pth"):
+        checkpoint = T.load(filename, map_location=self.Q_eval.device)
+        self.Q_eval.load_state_dict(checkpoint['model_state_dict'])
+        self.Q_eval.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.epsilon = checkpoint['epsilon']

@@ -1,8 +1,9 @@
 from dqn_agent import Agent
-from SemantleGameEnv import SemantleEnv  # Assuming the environment class is defined here
+from SemantleGameEnv import SemantleEnv
 import json
 import numpy as np
 import matplotlib.pyplot as plt
+import os  
 
 def plot_scores(similarity_scores):
     plt.figure(figsize=(10, 5))
@@ -14,28 +15,35 @@ def plot_scores(similarity_scores):
     plt.show()
 
 # Load the list of words for the game
-with open('words.json', 'r') as fp:
+with open('../words.json', 'r') as fp:
     word_list = json.load(fp)['words']
 
 if __name__ == '__main__':
     print("start")
     # Initialize the Semantle environment with the word list
-    env = SemantleEnv(word_list=word_list, history_length=5, max_guesses=100, correct_guess_bonus=400, incorrect_guess_penalty=-500)
+    env = SemantleEnv(word_list=word_list, history_length=5, max_guesses=50, correct_guess_bonus=200, incorrect_guess_penalty=0)
     state_size = env.observation_space.shape[0]
     action_size = env.action_space.n
     agent = Agent(gamma=0.99, epsilon=1.0, batch_size=256, n_actions=action_size, eps_end=0.01, input_dims=state_size, lr=0.001)
 
-    
-    n_games = 30000
-    save_interval = 1000  # Save the model every 1000 games
-    
+    model_path = 'dqn_model.pth'
+    if os.path.exists(model_path):
+        print("Loading existing model...")
+        agent.load_model(model_path)
+    else:
+        print("No existing model found, starting fresh...")
+
+    n_games = 1000
+    save_interval = 1000  # Adjusted comment to match the interval variable
+
     similarity_scores = []
+    averages = []
     for i in range(n_games):
         
         if (i % 100 == 0):
             print(" ")
             print("Game " + str(i))
-            env.verbose = True  # Fix to access the instance variable correctly
+            env.verbose = True
             print(" ")
         else:
             env.verbose = False
@@ -56,11 +64,12 @@ if __name__ == '__main__':
             game_scores.append(similarity_score)
             
         similarity_scores.append(np.mean(game_scores))
-            # Save model periodically and at the end of training
+        # Save model periodically and at the end of training
         if (i + 1) % save_interval == 0 or (i + 1) == n_games:
             agent.save_model()
-        print(f'episode {i}, score {score:.2f}, game average similarity score {np.mean(game_scores):.2f}, recent average score {np.mean(similarity_scores[-100:]):.2f}')
+        local_average = np.mean(similarity_scores[-100:])
+        averages.append(local_average)
+        print(f'episode {i}, score {score:.2f}, game average similarity score {np.mean(game_scores):.2f}, recent average score {local_average:.2f}')
     print("end")
 
-    plot_scores(similarity_scores)
-
+    plot_scores(averages)

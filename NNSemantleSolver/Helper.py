@@ -64,7 +64,8 @@ class Helper():
         model.train()
         previous_average_loss = None  # Initialize a variable to store the loss of the previous epoch
         loss_difference = "N/A"  # Initialize loss_difference for the first epoch
-
+        losses = []
+        
         for epoch in range(epochs):
             total_loss = 0
             progress_bar = tqdm(range(len(inputs)), desc=f"Epoch {epoch+1}/{epochs}")
@@ -85,11 +86,14 @@ class Helper():
             if previous_average_loss is not None:
                 loss_difference = previous_average_loss - average_loss
                 progress_bar.set_postfix({'Avg Loss': f'{average_loss:.4f}', 'Loss Change': f'{loss_difference:.4f}'})
+                losses.append(average_loss)
             else:
                 progress_bar.set_postfix({'Avg Loss': f'{average_loss:.4f}'})
             
             previous_average_loss = average_loss  # Update the previous_average_loss for the next epoch
             print(f'Epoch {epoch + 1}, Average Loss: {average_loss:.4f}, Loss Change from Previous Epoch: {loss_difference}')
+        return losses
+            
 
     
     def simulate_games(self, model, num_games=20, max_guesses=50):
@@ -101,10 +105,11 @@ class Helper():
         
         for _ in progress_bar:
             target_word = np.random.choice(self.word_list)
-            guessed_word = np.random.choice(self.word_list)
             similarities = []  # List to keep track of similarity scores in the current game
+            guessed_word = np.random.choice(self.word_list)
             
-            for guesses in range(max_guesses):
+            for i in range(max_guesses):
+                total_guesses += 1
                 guessed_vector = self.model[guessed_word].reshape(1, -1)
                 similarity = self._get_similarity_score(guessed_word, target_word)
                 similarities.append(similarity)  # Add the similarity score to the list
@@ -116,10 +121,8 @@ class Helper():
                 guessed_word = self.find_closest_word(predicted_embedding)
                 
                 if guessed_word == target_word:
-                    total_guesses += guesses + 1
                     break
-            else:
-                total_guesses += max_guesses  # Maximum guesses reached without finding the target word
+            
             
             # Calculate average similarity for the current game
             average_similarity = np.mean(similarities)
@@ -130,7 +133,7 @@ class Helper():
         overall_average_similarity = total_average_similarity / num_games  # Calculate the overall average similarity across all games
         print(f'Average number of guesses per game: {average_guesses}')
         print(f'Overall average similarity per game: {overall_average_similarity:.2f}')
-
+        
         
 
     

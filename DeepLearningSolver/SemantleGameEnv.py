@@ -49,12 +49,11 @@ class SemantleEnv(gym.Env):
             reward = self.incorrect_guess_penalty
         elif(similarity_score == 100):
             print("Correct guess!, Guessed Word : " + self.word_list[action])
-            done = True
             reward = self.correct_guess_bonus
+            done = True
         else:
             reward = similarity_score
             done = False
-        reward *= self.decay_function(self.current_guess_count)
         
         self.current_guess_count += 1
         return self.state, reward, done, {}, similarity_score

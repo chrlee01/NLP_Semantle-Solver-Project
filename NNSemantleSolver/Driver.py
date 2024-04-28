@@ -21,6 +21,17 @@ MODEL_SAVE_PATH = 'semantle_model_2.pth'
 MODEL_LOAD_PATH = 'semantle_model.pth'
 
 def plot_losses(losses):
+    """
+    Plot the average loss per example during training.
+
+    Args:
+        losses (list): A list of loss values for each epoch.
+
+    Returns:
+        None
+
+    This function plots the average loss per example during training using the given list of loss values. It creates a figure with a size of (10, 5) and plots the losses using matplotlib. The title of the plot is 'Average Loss per Example During Training', and the x-axis label is 'Epoch' and the y-axis label is 'Average Loss per Training Example'. The plot is displayed using plt.show().
+    """
     plt.figure(figsize=(10, 5))
     plt.plot(losses)
     plt.title('Average Loss per Example During Training')

@@ -5,7 +5,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os  
 
+
 def plot_scores(similarity_scores):
+    """
+    Plots the average similarity score over time
+    """
     plt.figure(figsize=(10, 5))
     plt.plot(similarity_scores, label='Average Similarity Score')
     plt.title('Average Similarity Scores Per Game')
@@ -14,17 +18,32 @@ def plot_scores(similarity_scores):
     plt.legend()
     plt.show()
 
+
 # Load the list of words for the game
 with open('../words.json', 'r') as fp:
     word_list = json.load(fp)['words']
 
+
 if __name__ == '__main__':
+    """
+    Main function to run the DQN solver
+    """
     print("start")
     # Initialize the Semantle environment with the word list
-    env = SemantleEnv(word_list=word_list, history_length=5, max_guesses=50, correct_guess_bonus=200, incorrect_guess_penalty=0)
+    env = SemantleEnv(word_list=word_list, 
+                      history_length=5, 
+                      max_guesses=50,
+                      correct_guess_bonus=200,
+                      incorrect_guess_penalty=0)
     state_size = env.observation_space.shape[0]
     action_size = env.action_space.n
-    agent = Agent(gamma=0.99, epsilon=1.0, batch_size=256, n_actions=action_size, eps_end=0.01, input_dims=state_size, lr=0.001)
+    agent = Agent(gamma=0.99, 
+                   epsilon=1.0,
+                   batch_size=256,
+                   n_actions=action_size,
+                   eps_end=0.01,
+                   input_dims=state_size,
+                   lr=0.001)
 
     model_path = 'dqn_model.pth'
     if os.path.exists(model_path):
@@ -62,8 +81,10 @@ if __name__ == '__main__':
             action = agent.choose_action(observation)
             observation_, reward, done, info, similarity_score = env.step(action)
             score += reward
+            
             agent.store_transition(observation, action, reward, observation_, done)
             observation = observation_
+            
             agent.learn()
             game_scores.append(similarity_score)
             
@@ -76,3 +97,5 @@ if __name__ == '__main__':
         print(f'episode {i}, score {score:.2f}, game average similarity score {np.mean(game_scores):.2f}, recent average score {local_average:.2f}')
     print("end")
     plot_scores(averages)
+
+

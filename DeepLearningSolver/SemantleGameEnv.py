@@ -26,6 +26,16 @@ class SemantleEnv(gym.Env):
         self.reset()
 
     def step(self, action):
+        """
+        Perform a step in the environment based on the given action.
+        
+        Parameters:
+            action: An integer representing the index of the action to take.
+        
+        Returns:
+            Tuple containing the updated state, the reward earned from the step, 
+            a boolean indicating if the episode is done, an empty dictionary, and the similarity score.
+        """
         guessed_word = self.word_list[action]
         similarity_score = self._get_similarity_score(guessed_word)
         guessed_vector = self.model[guessed_word] if guessed_word in self.model else np.zeros(300)
@@ -59,6 +69,12 @@ class SemantleEnv(gym.Env):
         return self.state, reward, done, {}, similarity_score
 
     def reset(self):
+        """
+        Resets the environment to its initial state.
+
+        Returns:
+            numpy.ndarray: The initial state of the environment.
+        """
         self.current_guess_count = 0
         self.target_word = random.choice(self.word_list)
         self.target_vector = self.model[self.target_word].reshape(1, -1) if self.target_word in self.model else np.zeros((1, 300))
@@ -69,6 +85,17 @@ class SemantleEnv(gym.Env):
         return self.state
 
     def _get_similarity_score(self, guessed_word):
+        """
+        Calculates the similarity score between a guessed word and the target word.
+
+        Parameters:
+            guessed_word (str): The word to compare similarity with the target word.
+
+        Returns:
+            float: The similarity score between the guessed word and the target word, ranging from 0 to 100.
+                   Returns 100 if the guessed word is equal to the target word.
+                   Returns 0 if the guessed word is not in the model.
+        """
         if guessed_word == self.target_word:
             return 100
         if guessed_word not in self.model:
@@ -81,4 +108,15 @@ class SemantleEnv(gym.Env):
         pass  # Not implemented for now
     
     def decay_function(self, x):
+        """
+        Calculates the decay function for a given value x. Can be used to reduce the value of the reward if the guess happens later in the game.
+
+        Parameters:
+            x (float): The input value for the decay function.
+
+        Returns:
+            float: The result of the decay function.
+
+        The decay function is defined as e^(-x/20).
+        """
         return math.exp(-x/20)

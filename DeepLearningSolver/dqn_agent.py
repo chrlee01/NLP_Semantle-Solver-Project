@@ -43,27 +43,25 @@ class DeepQNetwork(nn.Module):
         return actions
 
 class Agent():
-    """Deep Q-Network Agent for the Solver environment.
-    
-    The agent has the following attributes:
-        gamma: discount factor
-        epsilon: epsilon-greedy parameter
-        eps_end: minimum epsilon
-        eps_dec: epsilon decay rate
-        lr: learning rate
-        action_space: action space
-        mem_size: maximum memory size
-        batch_size: batch size
-        mem_cntr: memory counter
-        
-        Q_eval: Deep Q-Network
-        state_memory: memory of past states
-        new_state_memory: memory of past next states
-        action_memory: memory of past actions
-        reward_memory: memory of past rewards
-        terminal_memory: memory of past terminal states
-    """
+    """Deep Q-Network Agent for the Solver environment."""
     def __init__(self, gamma, epsilon, lr, input_dims, batch_size, n_actions, max_mem_size=100000, eps_end=0.01, eps_dec=5e-4):
+        """
+        Initializes the Deep Q-Network Agent with the given parameters.
+
+        Parameters:
+            gamma (float): discount factor
+            epsilon (float): epsilon-greedy parameter
+            lr (float): learning rate
+            input_dims (int): dimensions of the input
+            batch_size (int): batch size
+            n_actions (int): number of possible actions
+            max_mem_size (int, optional): maximum memory size. Defaults to 100000.
+            eps_end (float, optional): minimum epsilon. Defaults to 0.01.
+            eps_dec (float, optional): epsilon decay rate. Defaults to 5e-4.
+
+        Returns:
+            None
+        """
         self.gamma = gamma
         self.epsilon = epsilon
         self.eps_min = eps_end

@@ -14,6 +14,18 @@ class RandomHelper():
         self.verbose = False
 
     def _get_similarity_score(self, guessed_word, target_word):
+        """
+        Calculates the similarity score between two words.
+
+        Parameters:
+            guessed_word (str): The word to compare similarity with the target word.
+            target_word (str): The word to compare similarity with the guessed word.
+
+        Returns:
+            float: The similarity score between the guessed word and the target word, ranging from 0 to 100.
+                   Returns 100 if the guessed word is equal to the target word.
+                   Returns 0 if the guessed word is not in the model.
+        """
         if guessed_word == target_word:
             return 100
         if guessed_word not in self.model:
@@ -26,6 +38,16 @@ class RandomHelper():
         return np.random.choice(self.word_list)
     
     def simulate_games(self, num_games=20, max_guesses=50):
+        """
+        Simulates a number of games and calculates the average number of guesses per game and overall average similarity.
+
+        Parameters:
+            num_games (int): The number of games to simulate. Default is 20.
+            max_guesses (int): The maximum number of guesses allowed per game. Default is 50.
+
+        Returns:
+            None
+        """
         print("Simulating games...")
         total_guesses = 0
         total_average_similarity = 0  # To track the average similarity per game

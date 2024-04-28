@@ -30,6 +30,18 @@ class Helper():
         print("Annoy index built successfully.")
         
     def _get_similarity_score(self, guessed_word, target_word):
+        """
+        Calculates the similarity score between two words.
+
+        Parameters:
+            guessed_word (str): The word to compare similarity with the target word.
+            target_word (str): The word to compare similarity with the guessed word.
+
+        Returns:
+            float: The similarity score between the guessed word and the target word, ranging from 0 to 100.
+                   Returns 100 if the guessed word is equal to the target word.
+                   Returns 0 if the guessed word is not in the model.
+        """
         if guessed_word == target_word:
             return 100
         if guessed_word not in self.model:
@@ -39,10 +51,28 @@ class Helper():
         similarity = (cosine_similarity(target_vector, guessed_vector)[0][0] * 100)
         return similarity
     def find_closest_word(self, predicted_embedding):
+        """
+        Finds the closest word to the given predicted embedding.
+
+        Args:
+            predicted_embedding (numpy.ndarray): The predicted embedding.
+
+        Returns:
+            str: The closest word to the predicted embedding.
+        """
         closest_id = self.index.get_nns_by_vector(predicted_embedding, 1)[0]
         return self.model.index_to_key[closest_id]
     
     def generate_training_examples(self, num_examples):
+        """
+        Generates training examples for a machine learning model.
+
+        Args:
+            num_examples (int): The number of training examples to generate.
+
+        Returns:
+            tuple: A tuple containing the inputs and outputs as numpy arrays.
+        """
         print("Generating training examples...")
         inputs = []
         outputs = []
@@ -61,6 +91,20 @@ class Helper():
         return np.array(inputs), np.array(outputs)
     
     def train_model(self, model, criterion, optimizer, inputs, outputs, epochs):
+        """
+        Trains a machine learning model using the given inputs, outputs, model, criterion, optimizer, and number of epochs.
+        
+        Args:
+            model (torch.nn.Module): The model to be trained.
+            criterion (torch.nn.Module): The loss function used for training.
+            optimizer (torch.optim.Optimizer): The optimizer used for updating the model's parameters.
+            inputs (List[torch.Tensor]): The input tensors for training.
+            outputs (List[torch.Tensor]): The target output tensors for training.
+            epochs (int): The number of epochs to train the model.
+        
+        Returns:
+            List[float]: The average loss for each epoch during training.
+        """
         model.train()
         previous_average_loss = None  # Initialize a variable to store the loss of the previous epoch
         loss_difference = "N/A"  # Initialize loss_difference for the first epoch
@@ -97,6 +141,17 @@ class Helper():
 
     
     def simulate_games(self, model, num_games=20, max_guesses=50):
+        """
+        Simulates a number of games and calculates the average number of guesses per game and overall average similarity.
+
+        Parameters:
+            model (torch.nn.Module): The model to use for prediction.
+            num_games (int): The number of games to simulate. Default is 20.
+            max_guesses (int): The maximum number of guesses allowed per game. Default is 50.
+
+        Returns:
+            None
+        """
         print("Simulating games...")
         model.eval()
         total_guesses = 0

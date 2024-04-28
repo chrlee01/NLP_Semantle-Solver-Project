@@ -1,60 +1,101 @@
-from sklearn.metrics.pairwise import cosine_similarity
-import requests
-import numpy as np
-import gensim.downloader
-import time
-import json
 import datetime
+import json
+import time
+
+import gensim.downloader as api
 import pytz
+from sklearn.metrics.pairwise import cosine_similarity
 
-# load model
-time_first = time.perf_counter()
-print("loading word2vec model")
-model = gensim.downloader.load('word2vec-google-news-300')
-print("model loaded")
-print("took {} seconds to load".format(time.perf_counter() - time_first))
+import constants
 
-# get the number of the day
-start_date = datetime.date(2022, 1, 29)
-today = datetime.datetime.now(pytz.utc).date()
-semantle_number = (today - start_date).days
-print("semantle day", semantle_number)
 
-# get target for the day
-with open('words.json', 'r') as file:
-    words = json.load(file)
-    words = words['words']
-    target = words[semantle_number]
-target_vector = model[target]
-target_vector_comparison = target_vector.reshape(1, -1)
+class SemantleClient:
 
-url = f"https://semantle.com/model2/{target}/"
+    def __init__(self, model=None, verbose=False):
+        self.verbose = verbose
+        self.loaded_model = None
+        self._load_word2vec_model(model=model)
 
-guess = ""
+    def _load_word2vec_model(self, model):
+        time_first = time.perf_counter()
+        if model is None:
+            model = constants.WORD2VEC_MODEL
+        if self.verbose:
+            print('Loading model...')
+        self.loaded_model = api.load(model)
+        elapsed_time = time.perf_counter() - time_first
+        if self.verbose:
+            print(f"Model loaded in {elapsed_time} seconds.")
 
-# game itself
-while guess != target:
-    # guess logic
-    guess = input("enter a guess: ")    
+    def initialize_game(self, day_number=None):
+        return SemantleSession(day_number, self)
 
-    if guess not in model:
-        print("word invalid")
-        continue
 
-    calculated_vector = model[guess]
-    calculated_vector_comparison = calculated_vector.reshape(1, -1)
+class SemantleSession:
 
-    # query website to see if returned vector and calculated vector are the same
-    with requests.get(url + guess) as response:
-        vector = np.array(response.json()['vec'])
-        if cosine_similarity(vector.reshape(1, -1), calculated_vector_comparison) == 1:
-            print("correct model")
+    def __init__(self, day_number, client):
+        self.client = client
+        self.day = day_number
+        if self.day is None:
+            self._get_current_day_number()
+        self.target = None
+        self.target_vector_comparison = None
+        self._get_target()
+        self.url = None
+        self._generate_url()
+
+    def _get_current_day_number(self):
+        start_date = datetime.date(*constants.SEMANTLE_START_DATE)
+        today = datetime.datetime.now(pytz.utc).date()
+        curr_semantle_number = (today - start_date).days
+        if self.client.verbose:
+            print(f'Playing semantle #{curr_semantle_number}')
+        self.day = curr_semantle_number
+
+    def _get_target(self):
+        with open(constants.WORDS_FILE, 'r') as fp:
+            words = json.load(fp)['words']
+        self.target = words[self.day]
+        target_vector = self.client.loaded_model[self.target]
+        self.target_vector_comparison = target_vector.reshape(1, -1)
+
+    def _generate_url(self):
+        self.url = f'{constants.SEMANTLE_BASE_URL}/{self.target}'
+
+    def check_guess(self, guess):
+        if guess == self.target:
+            return {'guess': guess, 'correct': True, 'similarity': 100, 'invalid': False}
+        elif guess not in self.client.loaded_model:
+            return {'guess': guess, 'correct': False, 'similarity': None, 'invalid': True}
         else:
-            print("wrong model")
+            calculated_vector_comparison = self.client.loaded_model[guess].reshape(1, -1)
 
-    # calculate cosine similarity to compare to the website
-    similarity = cosine_similarity(target_vector_comparison, calculated_vector_comparison)
-    similarity = similarity[0][0]
-    print("cosine similarity:", similarity*100)
+            cosine_similarity_ = cosine_similarity(self.target_vector_comparison, calculated_vector_comparison)[0][0]
+            similarity = cosine_similarity_ * 100
+            return {'guess': guess, 'correct': False, 'similarity': similarity, 'invalid': False}
 
-print("won, the word was {}".format(target))
+    def play(self):
+        history = []
+        while True:
+            guess = input('Enter a guess: ')
+            result = self._check_guess(guess)
+            history.append(result)
+            if result['correct']:
+                if self.client.verbose:
+                    print('Correct!')
+                    break
+            elif result['invalid']:
+                if self.client.verbose:
+                    print('Invalid Guess.')
+                    continue
+            else:
+                if self.client.verbose:
+                    similarity = result['similarity']
+                    print(f'Incorrect. Similarity: {similarity}.')
+        return history
+
+
+if __name__ == '__main__':
+    client = SemantleClient(verbose=True)
+    game = client.initialize_game()
+    game.play()
